@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC
+        "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.learn.chaptertest.mapper.RoleMapper">
+    <select id="getRole" resultType="role" parameterType="long">
+        SELECT id,role_name roleName,note FROM tab_role WHERE id =#{id}
+    </select>
+    <select id="find" resultType="role">
+        SELECT id,role_name roleName,note FROM tab_role
+    </select>
+    <insert id="insertRole" parameterType="role">
+        INSERT INTO tab_role (role_name,note) VALUES (#{roleName},#{note})
+    </insert>
+    <update id="updateRoleById" parameterType="long" >
+        UPDATE tab_role
+        <trim prefix="SET" prefixOverrides=",">
+            ,role_name = #{roleName}
+            ,note = #{note}
+        </trim>
+    </update>
+    <delete id="deleteRoleById" parameterType="long">
+        DELETE FROM   tab_role WHERE id = #{id}
+
+    </delete>
+</mapper>
