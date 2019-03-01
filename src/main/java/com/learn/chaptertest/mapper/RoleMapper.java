@@ -1,6 +1,7 @@
 package com.learn.chaptertest.mapper;
 
 import com.learn.chaptertest.po.Role;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -37,5 +38,5 @@ public interface RoleMapper {
      * 列表查询
      * @return
      */
-    public List<Role> find();
+    public List<Role> find(@Param("id") Long id);
 }
