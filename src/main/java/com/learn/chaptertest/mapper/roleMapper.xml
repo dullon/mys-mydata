@@ -4,12 +4,17 @@
         "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.learn.chaptertest.mapper.RoleMapper">
+    <resultMap id="roleMap" type="role">
+        <result property="id" column="id" jdbcType="LONG"/>
+        <result property="roleName" column="role_name" jdbcType="VARCHAR"/>
+        <result property="note" column="note" jdbcType="VARCHAR"/>
+    </resultMap>
     <select id="getRole" resultType="role" parameterType="long">
         SELECT id,role_name roleName,note FROM tab_role
         WHERE id =#{id}
     </select>
-    <select id="find" resultType="role" parameterType="java.lang.Long">
-        SELECT id,role_name roleName,note FROM tab_role
+    <select id="find" resultMap="roleMap" parameterType="long">
+        SELECT id,role_name,note FROM tab_role
         <where>
             <if test="id != null " >
                AND id = #{id}
