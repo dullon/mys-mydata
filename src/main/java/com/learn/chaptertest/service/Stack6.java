@@ -7,7 +7,7 @@ import java.util.EmptyStackException;
  * 消除过期的对象引用
  */
 public class Stack6 {
-    private Object[] elements;
+    private Object[] elements;//如果该成员是final类型 则clone时会报错
     private int size = 0;
     private static final int DEFAULT_INITIAL = 16;
 
@@ -36,6 +36,17 @@ public class Stack6 {
     private void ensureCapacity(){
         if (elements.length == size){
             elements = Arrays.copyOf(elements,2*size + 1);//扩容把旧的数组迁移到新数组内
+        }
+    }
+
+    @Override
+    public Stack6 clone() {
+        try {
+            Stack6 result = (Stack6)super.clone();//这属于表层复制，把目标对象基本类型复制过来，如果有复杂的子域则需要二次复制
+            result.elements = elements.clone();//克隆时 需要把被克隆对象的子域 同时复制过来，尤其是容器类型。
+            return result;
+        }catch (CloneNotSupportedException ce){
+            throw new AssertionError(":"+this.getClass());
         }
     }
 }

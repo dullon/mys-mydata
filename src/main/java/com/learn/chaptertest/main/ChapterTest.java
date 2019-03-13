@@ -3,6 +3,7 @@ package com.learn.chaptertest.main;
 import java.io.IOException;
 import java.util.List;
 
+import com.learn.chaptertest.service2.PhoneNumber11;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.logging.log4j.LogManager;
@@ -16,8 +17,13 @@ public class ChapterTest {
     public static void main(String [] args) throws IOException {
 
         Logger logger = LogManager.getLogger(module);
+        PhoneNumber11 phoneNumber11 = new PhoneNumber11((short) 222,(short)333,(short)4444);
+        System.out.println(phoneNumber11.getClass() == phoneNumber11.clone().getClass()); //true
+        System.out.println(phoneNumber11 != phoneNumber11.clone());//true
+        System.out.println(phoneNumber11.hashCode() == phoneNumber11.clone().hashCode());//true
+        System.out.println(phoneNumber11.clone().equals(phoneNumber11));//true
     	//BasicConfigurator.configure();
-        SqlSession sqlSession = null;
+        /*SqlSession sqlSession = null;
 
         try {
             sqlSession = SqlSessionFactoryUtil.openSqlSession();
@@ -38,6 +44,6 @@ public class ChapterTest {
             if (sqlSession != null){
                 sqlSession.close();
             }
-        }
+        }*/
     }
 }
