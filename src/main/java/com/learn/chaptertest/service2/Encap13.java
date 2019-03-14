@@ -1,11 +1,13 @@
 package com.learn.chaptertest.service2;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 /**
  * 13 使类和成员的可访问性最小化
+ * 14 在公有雷总使用访问方法而非公有域
  */
 public class Encap13 {
     //说白了 就是一种封装化 Java三大特性 封装 继承 多态
@@ -35,4 +37,13 @@ public class Encap13 {
         return BBB_VALUES.clone();
     }
 
+    private int a; //访问该域的时候应该应用 get 或者 set方法 而不是 直接调用 这是封装的常规模式
+
+    public int getA() {
+        return a;
+    }
+
+    public void setA(int a) {
+        this.a = a;
+    }
 }
