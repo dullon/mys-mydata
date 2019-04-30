@@ -1,6 +1,5 @@
 package com.learn.chaptertest.service4;
 
-import java.math.BigInteger;
 import java.util.AbstractList;
 import java.util.List;
 
@@ -28,13 +27,13 @@ public  class MethodTest38 {
      * @throws ArithmeticException {@code m} &le; 0
      * @see    #remainder
      */
-    public BigInteger mod(BigInteger m) {
+   /* public BigInteger mod(BigInteger m) {
         if (m.signum <= 0)
             throw new ArithmeticException("BigInteger: modulus not positive");
 
         BigInteger result = this.remainder(m);
         return (result.signum >= 0 ? result : result.add(m));
-    }
+    }*/
         //对于未被导出的方法，作为包的创建者，你可以控制这个方法在哪些情况下可以被调用，因此你可以，也应该确保只将有效的参数传递进去。因此，非公有方法通常应该使用断言（assert）来检查它们的参数
     //有一些参数暂时没有直接用到，只是保存起来供以后使用，这种参数的有效性检查也是尤其重要
     private static void sort(long a[], int offset, int length) {
