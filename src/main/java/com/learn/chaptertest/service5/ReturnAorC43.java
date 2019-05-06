@@ -5,6 +5,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Random;
 
 /**
  *  43 : 返回0长度的数组或者集合，而不用null
@@ -34,6 +35,16 @@ import java.lang.annotation.Target;
  */
 public class ReturnAorC43 {
 
+    static Random r = new Random();
+    static int randomInt(int i){
+        return i == 0?r.nextInt():r.nextInt(i);
+    }
+    public static void main(String [] args){
+        int a =  randomInt(2<<30-1);
+        int b =  randomInt(0);
+        System.out.println(a);
+        System.out.println(b);
+    }
     /**
      * 当为泛型或者方法编写文档时，确保要在文档中说明所有的类型参数。
      * @author
@@ -43,6 +54,8 @@ public class ReturnAorC43 {
      */
     public interface Map<K, V> {
         //dosomething
+
+
     }
     /**
      * 当为枚举类型编写文档时，要确保在文档中说明常量，以及类型，还有任何公有的方法。
