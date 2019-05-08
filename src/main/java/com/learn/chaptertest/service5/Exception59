@@ -1,0 +1,54 @@
+59 ： 避免不必要的使用受检的异常
+
+    受检的异常是Java设计语言的一项很好的特性。与返回代码不同，他们强迫程序员处理异常的条件，大大增强了可靠性。也就是说，过分使用受检的异常会使API使用起来非常不方便。如果方法抛出一个或者多个受检的异常，或者他必须声明他抛出这些异常，并让他们传播出去。无论哪种方法，都给程序员增添了不可忽视的负担。
+    如果正确的使用API并不能组织这种异常条件的产生，并且一点产生异常，使用API的程序员可以立即采取有用的工作，这这哦那个负担就被认为是正当的。除非这两个条件都成立，否则更适合于使用未受检的异常。
+     被一个方法单独抛出的受检异常，会给程序员带来非常高的额外负担。如果这个方法还有其他的受检异常，它被调用的时候一定已经出现在一个try块中，所以这个异常只需要另外一个catch块。如果方法只抛出单个受检的异常，仅仅一个异常就会导致该方法不得不外于try块中，在这些情况下，应该问自己，是否有别的途径来避免使用受检的异常。
+     把受检的异常编程未受检的异常”的一种方法是，把这个抛出异常的方法分成两个方法，其中第一个方法返回一个boolean，表明是否应该抛出异常。
+     重构前：
+   try{
+     obj.action(args);
+   }catch(TheCheckedException){
+    ...
+   }
+     重构后：
+   if(obj.actionPermitted(args)){
+     obj.action(args);
+   }else{
+     ...
+   }
+ 这种重构不总是恰当的，但是凡是在恰当的地方，调用API会觉得用起来很舒适，虽然代码优雅度可读性较差，但是它更加灵活。
+ 注： 在对象缺少外部同步的情况下并发访问，或者可被外界改变状态，这种重构就是不恰当的。
+
+
+ 60 ： 优先使用标准的异常
+
+    高手可以高度的重用，异常也不例外。java平台提供了一系列基本的未受检的异常，满足了绝大多数API的异常抛出需求。
+
+    重用现有异常有很多好处。其中最主要的好处是，他使你的API更加易于学习和使用，因为他与程序员已经熟悉的习惯用法是一致的。第二个好处是，对于用到这些API的程序而言，他们的可读性会更好，因为他们不会出现很多程序员不熟悉的异常。最后（也是最不重要的）一点是，异常类越少，意味着内存印迹就越小，装载这些类的时间开销也越少。
+
+    所有错误的方法调用都可以被归结为非法参数(IllegalArgumentException)或者非法状态(IllegalStatusException)，但是，其他还有一些标准异常也被用于某些特定情况下的非法参数和非法状态。如果调用者在某个不允许null值的参数中传递了null，习惯的做法就是抛出NullPointerException，而不是IllEgalArgumentException。同样地，如果调用者在表示序列下标的参数中传递了越界的值，应该抛出的就是IndexOutOfBoundsException，而不是IllEgalArgumentException。
+
+    另一个值得了解的通用异常是ConcurrentModificationException。如果一个对象被设计为专用于单线程或者与外部同步机制配合使用，一旦发现他正在（或已经）被并发的修改，就应该抛出这个异常。
+
+    最后一个值得重视的异常是UnsupportedOperationException，如果对象不支持这个操作，就抛出这个异常，比如基类里一个方法，如果子类必须实现它才能用，通常做法是抽象，另一种思路就是在基类的这个方法抛出这个异常，强制子类去重写这个方法；或者另外一个场景，我们自定义了只支持add()方法的List列表，如果有人试图调用remove()方法，我们就抛出这个异常。
+    ArithmeticException ： 一个非法算术运算产生的异常。
+    ArrayStoreException ： 存入数组的内容数据类型不一致所产生的异常。
+    ArrayIndexOutOfBoundsException ： 数组索引超出范围所产生的异常。
+    ClassCastException ： 类对象强迫转换造成不当类对象所产生的异常。
+    IllegalArgumentException ： 程序调用时，返回错误自变量的数据类型。
+    IllegalThreadStateException ： 线程在不合理状态下运行所产生的异常。
+    NumberFormatException ： 字符串转换为数值所产生的异常。
+    IllegalMonitorStateException ： 线程等候或通知对象时所产生的异常。
+    IndexOutOfBoundsException ： 索引超出范围所产生的异常。
+    NegativeException ： 数组建立负值索引所产生的异常。
+    NullPointerException ： 对象引用参考值为 null所产生的异常。
+    SecurityException ： 违反安全所产生的异常。
+    IndexOutOfBoundsException ： 下标参数值越界所产生的异常。
+    ConcurrentModificationException ： 在禁止并发修改的情况下，检测到对象的并发修改所产生的异常。
+    UnsupportedOperationException ： 对象不支持用户的请求方法所产生的异常。
+    IOException ： 输入流和输出流不正确时所产生的异常。
+    FileNotFoundException  ： 文件未找到 所产生的异常。
+
+     最后，一定要清楚，选择重用哪个异常并不总是那么精确，因为上表中“使用场合”并不是相互排斥的。例如，考虑表示一副纸牌的对象。假设有个处理发牌操作的方法，他的参数是发一手牌的纸牌张数。假设调用者在这个参数中传递的值大于整副纸牌的剩余张数。这种情形既可以被解释为IllegalArgumentException，也可以被解释为IllegalStateException。在这个例子中，感觉IllegalArgumentException要好一些，不过，这里并没有严格的规则。
+
+
