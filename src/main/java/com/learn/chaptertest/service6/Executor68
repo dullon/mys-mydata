@@ -1,0 +1,26 @@
+68 : executor和task优先于线程
+
+在Java 1.5 发行版本中，Java平台中增加了java.util.concurrent。这个包中包含了Executor Framework，这是一个很灵活的基于接口的任务执行工具。它创建了一个在各方面都比工作队列更好，却只需要这一行代码：
+
+ExecutorService executor = Executors.newSingleThreadExecutor();
+
+下面是为执行提交一个runnable的方法：
+
+executor.execute(runnable);
+
+下面是告诉executor如何优雅的终止（如果做不到这一点，虚拟机可能将不会退出）：
+
+executor.shutdown()。
+
+你可以利用executor service完成更多的事情。例如，可以等待完成一项特殊的任务（后台线程），你可以等待一个任务中任何任务或者所有任务完成（利用invokeAny或者invokeAll方法），你可以等待executor service优雅的完成终止（利用awaitTermination方法），你可以在任务完成时逐个地获取这些任务的结果（利用ExecutorCompletionService），等等。
+
+如果想让不止一个线程来处理来自这个队列的请求，只要调用一个不同的静态工厂，这个工厂创建了一种不同的executor service，称作线程池。你可以用固定或者可变数目的线程创建一个线程池。java.util.concurrent.Executors类包含了静态工厂，能为你提供所需的大多数executor。然而，如果你想来点特别的，可以直接使用ThreadPoolExecutor类。这个类允许你控制线程池操作的几乎每个方面。
+
+为特殊的应用程序选择executor service是很有技巧的。如果编写的是小程序，或者轻载的服务器，使用Executors.newCachedThreadPool通常是个不错的选择，因为它不需要配置，并且一般情况下能够正确的完成工作。但是对于大负载的服务器来说，缓存的线程池就不是很好的选择了！在缓存的线程池中，被提交的任务没有排成队列，而是直接交给线程执行。如果没有线程可用，就创建一个新的线程。如果服务器负载的太重，以致它所有的CPU都完全被占用了，当有更多的任务时，就会创建更多的线程，这样只会使情况变得更糟。因此，在大负载的产品服务器中，最好使用Executors.newFixedThreadPool，它为你提供了一个包含固定线程数目的线程池，或者为了最大限度的控制它，就直接使用ThreadPoolExecutor类。
+
+你不仅应该尽量不要编写自己的工作队列，而且还应该尽量不直接使用线程。现在关键的抽象不再是Thread了，它以前可是既充当工作单元，又是执行机制。现在工作单元和执行机制是分开的。现在关键的抽象是工作单元，称作任务（task）。任务有两种：Runnable及其近亲Callable（它与Runnable域类似，但它会返回值）。执行任务的通用机制是executor service。如果从任务的角度来看问题，并让一个executor service替你执行任务，在选择适当地执行策略方面就获得了极大地灵活性。从本质上讲Executor Famework所做的工作是执行，犹如Collections Framework所做的工作是聚集（aggregation）一样。
+
+Executor Framework也有一个可以代替java.util.Timer的东西，即ScheduledThreadPoolExecutor。虽然timer使用起来更加容易，但是被调度的线程池executor更加灵活。timer只用一个线程来执行任务，这在面对长期运行的任务时，会影响到定时的准确性。如果timer唯一的线程抛出未被捕获的异常，timer就会停止执行。被调度的线程池executor支持多个线程，并且优雅的从抛出未受检异常的任务中恢复。
+
+
+
