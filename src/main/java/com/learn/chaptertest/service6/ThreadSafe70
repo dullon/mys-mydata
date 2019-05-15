@@ -1,0 +1,74 @@
+70 ： 线程安全性的文档化
+
+在一个方法声明中出现synchronized修饰符，这是个实现细节，并不是导出的API的一部分。它并不一定表明这个方法是线程安全的。
+
+线程安全性有多种级别。一个类为了可被多个线程安全的使用，必须在文档中清楚地说明他所支持的线程安全性级别。
+
+1 不可变的（immutable）——这个类的实例是不变的。所以，不需要外部的同步。这样的例子包括String、Long和BigInteger。
+
+2 无条件的线程安全（unconditionally thread-safe）——这个类的实例是可变的，但是这个类有足够的内部同步，所以，它的实例可以被并发使用，无需任何外部同步。其例子包括Random和ConcurrentHashMap。
+
+3 有条件的线程安全（conditionally thread-safe）——除了有些方法为进行安全的并发使用而需要外部同步之外，这种线程安全级别与无条件的线程安全相同。这样的例子包括Collections.synchronized包装返回的集合，他们的迭代器要求外部同步。
+
+4 非线程安全（not thread-safe）——这个类的实例是可变的。为了并发的使用他们，客户必须利用自己选择的外部同步包围每个方法调用（或者调用序列）。这样的例子包括通用的集合实现，例如ArrayList和HashMap。
+
+5 线程对立的（thread-hostile）——这个类不能安全的被多个线程并发使用，即使所有方法调用都被外部同步包围。线程对立的根源通常在于，没有同步的修改静态数据。没有人会有意编写一个线程对立的类，基本已淘汰。
+
+值得注意的是有条件线程安全，它必须指明哪个方法调用序列需要外部同步，以及在执行这些序列的时候要获得哪把锁。而无条件的线程安全类，应该考虑使用私有锁对象（private lock object）来代替同步的方法。
+
+每个类都应该利用严谨的说明或者线程安全注解，清楚地在文档中说明它的线程安全属性。synchronized修饰符与这个文档毫无关系。有条件的线程安全类和无条件的线程安全类应该按照上述规范编写实现文档。这样可以防止客户端程序和子类的不同步干扰，让你能够在后续的版本中灵活地对并发控制采用更加复杂的方法。
+
+71 ：慎用延迟初始化
+
+延迟初始化（lazy initialization)是延迟到需要域的值时才将它初始化的这种行为。如果 永远不需要这个值，这个域就永远不会被初始化。这种方法既适用于静态域，也适用于实例域。虽然延迟初始化主要是一种优化，但它也可以用来打破类和实例初始化中的有害循环。
+
+就像大多数的优化一样，对于延迟初始化，最好建议“除非绝对必要，否则就不要这么做”( 见第55条:谨慎的进行优化）。延迟初始化就像一把双刃剑。它降低了初始化类或者创建实例的开销，却增加了访问被延迟初始化的域的开销。根据延迟初始化的域最终需要初始化的比例、初始化这些 域要多少开销，以及每个域多久被访问一次，延迟初始化（就像其他的许多优化一样）实际上降低了性能。
+
+也就是说，延迟初始化有它的好处。如果域只在类的实例部分被访问，井且初始化这个域的开销很高，可能就值得进行延迟初始化。要确定这一点，唯一的办法就是测量类在用和不用延迟初始化时的性能差别。
+
+当有多个线程时，延迟初始化是需要技巧的。如果两个或者多个线程共享一个延迟初始化的域，采用某种形式的同步是很重要的，否则就可能造成严重的Bug(见第66条:同步访问共享的可变数据）。
+
+在大多数情况下，正常的初始化要优先于延迟初始化。下面是正常初始化的实例域的一个 典型声明。注意其中使用了final修饰符（见第15条）。
+
+private final FieldType field = computeFieldValue();
+
+如果利用延迟优化来破坏初始化的循环，就要使用同步访问方法，因为它是最简单、最清楚的替代方法：
+
+synchronized FieldType getField(){
+    if(field == null){
+        field = computeFieldValue();
+    }
+    return field;
+}
+这两种习惯模式（正常的初始化和使用了同步访问方法的延迟初始化）应用到静态域上时保持不变，除了给域和访问方法声明添加了static修饰符之外。
+
+如果出于性能的考虑而需要对静态域使用延迟初始化，就使用 lazy initialization holder class模式。（典型的内部类静态域单例模式）这种模式保证了类要到被用到的时候才会被初始化。
+private static class FieldHolder{
+    static final FieldType field = computeFieldValue();
+}
+static FieldType getField(){
+    return FieldHolder.field;
+}
+当getField方法第一次被调用时，它第一次读取FieldHolder.field，导致FieldHolder类得到 初始化。这种模式的魅力在于，getField方法没有被同步，并且只执行一个域访问，因此延迟 初始化实际上并没有增加任何访问成本。现代的VM将在初始化该类的时候，同步域的访问。—旦这个类被初始化，VM将修补代码，以便后续对该域的访问不会导致任何测试或者同步。
+
+如果出于性能的考虑而需要对实例域使用延迟初始化，就使用双重检查模式（double­-check idiom)。这种模式避免了在域被初始化之后访问这个域时的锁定开销 （见第 67条:避免过度同步）。这 种模式背后的思想是：两次检査域的值[因此名字叫双重检查（double-check)],第一次检査 时没有锁定，看看这个域是否被初始化了，第二次检査时有锁定。只有当第二次检査时表明这个域没有被初始化，才会调用computeFieldValue方法对这个域进行初始化。因为如果域已 经被初始化就不会有锁定，域被声明为volatile很重要（见第66条:同步访问共享的可变数据）。下面就是这种习惯模式：（又是一种经典单例模式）
+class SynchronizedSingleton {
+
+	//一个静态的实例
+	private SynchronizedSingleton synchronizedSingleton;
+	//私有化构造函数
+	private SynchronizedSingleton(){}
+	//给出一个公共的静态方法返回一个单一实例
+	public SynchronizedSingleton getInstance(){
+		if (synchronizedSingleton == null) {
+			synchronized (this) {
+				if (synchronizedSingleton == null) {
+					synchronizedSingleton = new SynchronizedSingleton();
+				}
+			}
+		}
+		return synchronizedSingleton;
+	}
+}
+
+简而言之，大多数的域应该正常地进行初始化，而不是延迟初始化。如果为了达到性能目标，或者为了破坏有害的初始化循环，而必须延迟初始化一个域，就可以使用相应的延迟初始化方法。对于实例域，就使用双重检查模式（double-check idiom),对于静态域，则使用lazy initialization holder class idiom。（内部类静态域单例模式）
