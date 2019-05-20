@@ -32,3 +32,88 @@ readResolve的可访问性（accessibility）很重要。如果把readResolve方
 
 总而言之，你应该尽可能地使用枚举类型来实施实例控制的约束条件。如果做不到，同时又需要一个既可序列化又是实例受控的类，就必须提供一个readResolver方法，并确保该类的所有实例域都为基本类型，或者是瞬时的。
 
+78 ：考虑用序列化代理代替序列化实例
+
+正如第74条中提到以及本章中所讨论的，决定实现Serializable，会增加出错和出现安全问题的可能性，因为它导致实例要利用语言之外的机制来创建，而不是用普通的构造器。然而，有一种方法可以极大地减少这些风险。这种方法就是序列化代理模式（serialization proxy pattern）。
+
+序列化代理模式相当简单。首先，为可序列化的类设计一个私有的静态嵌套类，精确地表示外围类的实例的逻辑状态。这个嵌套类被称作序列化代理（serialization proxy），它应该有一个单独的构造器，其参数类型就是那个外围类。这个构造器只从它的参数中复制数据：它不需要进行任何一致性检查或者保护性拷贝。按设计，序列代理的默认序列化形式是外围类最好的序列化形式。外围类及其序列代理都必须声明实现Serializable接口。
+
+
+//76条 把他变成可序列化的
+public class Period implements Serializable{
+
+    private static final long serialVersionUID = 1L;
+    private final Date start;
+    private final Date end;
+
+    public Period(Date start, Date end) {
+        if(this.start.compareTo(this.end) > 0){
+            throw new IllegalArgumentException(start + "after" + end);
+        }
+        this.start = start;
+        this.end = end;
+    }
+
+    public Date start(){
+        return new Date(start.getTime());
+    }
+
+    public Date end(){
+        return new Date(end.getTime());
+    }
+
+    @Override
+    public String toString(){
+        return "start：" + start + " , end：" + end;
+    }
+
+    /**
+     * 序列化外围类时，调用内部的静态代理类，最后其实是序列化了一个内部的代理类的参数，所以不影响外部类的实例。
+     * @return
+     */
+    private Object writeReplace(){
+        return new SerializabtionProxy(this);
+    }
+
+    /**
+     * 如果攻击者伪造了一个字节码文件，为了确保这种攻击无法得逞，只要外围类的readObject方法直接抛异常即可。
+     * @param stream
+     * @throws InvalidObjectException
+     */
+    private void readObject(ObjectInputStream stream) throws InvalidObjectException{
+        throw new InvalidObjectException("Proxy required!");
+    }
+
+    /**
+     * 序列化代理类，他精确表示了其当前外围类对象的状态！最后序列化时会将这个私有内部内进行序列化！
+     */
+    private static class SerializabtionProxy implements Serializable{
+
+
+        private final Date start;
+        private final Date end;
+        SerializabtionProxy(Period p){
+
+            this.start = p.start;
+            this.end = p.end;
+        }
+        private static final long serialVersionUID = 1L;
+        /**
+         * 反序列化这个类时，虚拟机会调用这个方法，最后返回的对象是一个Period对象！这里同样调用了Period的构造函数，
+         * 会进行构造函数的一些校验！
+         */
+        private Object readResolve(){
+            // 这里进行保护性拷贝！
+            return new Period(new Date(start.getTime()), new Date(end.getTime()));
+        }
+
+    }
+
+正如保护性拷贝方法一样（见第269页），序列化代理方法可以阻止伪字节流的攻击（见第303页）以及内部域的盗用攻击（见第267页）。与前两种方法不同，这种方法允许Period的域为final的，为了确保Period类真正是不可变的（见第15条），这一点很有必要。与前两种方法不同的还有，这种方法不需要太费心思。你不必知道哪些域可能受到狡猾的序列化攻击的威胁，你也不必显式地执行有效性检查，作为反序列化的一部分。
+
+还有一种方法，利用这种方法时，序列化代理模式的功能比保护性拷贝的更加强大。序列化代理模式允许反序列化实例有着与原始序列化实例不同的类。你可能认为这在实际应用中没有什么作用，其实不然。
+
+序列化代理模式有两个局限性。它不能与可以被客户端扩展的类兼容（见第17条）。它也不能与对象图中包含循环的某些类兼容：如果你企图从一个对象的序列化代理的readResolve方法内部调用这个对象中的方法，就会得到一个ClassCastException异常，因为你还没有这个对象，只有它的序列化代理。
+最后，序列化代理模式所增强的功能和安全性并不是没有代价的。在我的机器上，通过序列化代理来序列化和反序列化Period实例的开销，比用保护性拷贝进行的开销增加了14%。
+
+总而言之，每当你发现自己必须在一个不能被客户端扩展的类上编写readObject或者writeObject方法的时候，就应该考虑使用序列化代理模式。要想稳健地将带有重要约束条件的对象序列化时，这种模式可能是最容易的方法。
